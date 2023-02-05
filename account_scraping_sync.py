@@ -1,9 +1,8 @@
+from tiktokapipy import TikTokAPIError
 from tiktokapipy.api import TikTokAPI
 import csv
-import datetime
-import os
-import io
-import aiohttp
+
+from tiktokapipy.models.video import video_link
 
 
 # Uncomment this if you have trouble with playwright install in a venv
@@ -16,30 +15,43 @@ def scrape_account(api, account_name, output_path, debug=False, opening_mode="w"
         writer.writerow(
             ["Author", "Description", "Creation time", "Diggs", "Shares", "Comments", "Play count", "Challenges"])
         counter = 0
-        for video in user.videos:
+        for video_model in user.videos.light_models:
             counter += 1
-            writer.writerow([
-                video.author,
-                video.desc,
-                video.create_time.date(),
-                video.stats.digg_count,
-                video.stats.share_count,
-                video.stats.comment_count,
-                video.stats.play_count,
-                [challenge.title for challenge in video.challenges]]
-            )
-            if (debug):
-                print("====================")
-                print("Video : " + str(counter))
-                print("====================")
+            try:
+                video = api.video(video_link(video_model.id))
+                writer.writerow([
+                    video.author,
+                    video.desc,
+                    video.create_time.date(),
+                    video.stats.digg_count,
+                    video.stats.share_count,
+                    video.stats.comment_count,
+                    video.stats.play_count,
+                    [challenge.title for challenge in video.challenges]]
+                )
+                if (debug):
+                    print("====================")
+                    print("Scraping videos of " + account_name)
+                    print("Video : " + str(counter))
+                    print("Video desc : " + video.desc)
+                    print("====================")
+            except TikTokAPIError as e:
+                print("An error has occurred during video collection")
+                writer.writerow([
+                    video_link(video_model.id),
+                    "",
+                    video_model.create_time.date(),
+                    video_model.stats.digg_count,
+                    video_model.stats.share_count,
+                    video_model.stats.comment_count,
+                    video_model.stats.play_count,
+                    ""]
+                )
+                continue
         if (debug):
             print(counter)
         output.close()
 
-def save_video(video):
-    with aiohttp.ClientSession() as session:
-        with session.get(video.video.download_addr) as resp:
-            return io.BytesIO(await resp.read())
 
 with TikTokAPI(navigation_retries=5, headless=True, navigator_type="firefox", navigation_timeout=0,
                emulate_mobile=False, scroll_down_time=1) as api:
@@ -47,17 +59,17 @@ with TikTokAPI(navigation_retries=5, headless=True, navigator_type="firefox", na
     accounts = {
         "philippe.poutou": "stats_poutou.csv",
         "nathaliearthaud": "stats_lo.csv",
-        "jlmelenchon": "stats_melenchon.csv",
         "yjadot": "stats_jadot.csv",
         "fabien_roussel": "stats_roussel.csv",
-        "particommuniste": "stats_pcf.csv",
         "partisocialiste": "stats_ps.csv",
         "emmanuelmacron": "stats_macron.csv",
         "lesrepublicains": "stats_lr.csv",
-        "dupontaignannicolas": "stats_dupont-aignan.csv",
         "jeanlassalleoff": "stats_lassalle.csv",
         "mlp.officiel": "stats_lepen.csv",
+        "jlmelenchon": "stats_melenchon.csv",
+        "particommuniste": "stats_pcf.csv",
+        "dupontaignannicolas": "stats_dupont-aignan.csv",
         "zemmour_eric": "stats_zemmour.csv"
     }
 
-    scrape_account(api, "philippe.poutou", "stats_poutou.csv", True)
+    scrape_account(api, "zemmour_eric", "stats_zemmour.csv", debug=True)
