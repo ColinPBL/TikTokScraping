@@ -1,14 +1,14 @@
 import whisper
 from os import chdir, getcwd
 
-model = whisper.load_model("medium")
+model = whisper.load_model("large")
 
-chdir("D:\Master RESO\Memoire\Data\Echantillon\Videos\Emmanuel Macron")
+chdir("D:\Master RESO\Memoire\Data\Echantillon\Videos\Valerie Pecresse")
 
 
 def transcribe_video(path):
     # Open output file in 'Transcripts' folder
-    transcript = open("./Transcripts/" + path + ".txt", 'w')
+    transcript = open("./Transcripts/" + path + ".txt", 'w', encoding='utf8')
 
     # Transcribe video
     result = model.transcribe(path + ".mp4", verbose=True)
@@ -20,6 +20,5 @@ def transcribe_video(path):
     # Cleanup
     transcript.close()
 
-name = "emmanuelmacron_"
-for video in range(1, 28):
-    transcribe_video(name + str(video))
+name = "vpecresse_"
+transcribe_video(name + '1')
