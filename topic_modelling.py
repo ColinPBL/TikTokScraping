@@ -12,11 +12,15 @@ a csv file with one document per line. A document can have several associated va
 in the processing step
 """
 
+def dummy_tokenizer(doc):
+    return doc
+
+
 # Data cleaning
 # Using this article : https://towardsdatascience.com/nlp-in-python-data-cleaning-6313a404a470
 # Our text data is (relatively) clean, since it is organised in a csv file. This means we don't have to do a lot
 # of cleaning
-chdir("C:\\Users\\colin\\Documents\\Master RESO\\Memoire\\Data\\Echantillon\\Videos\\Emmanuel Macron\\Transcripts")
+chdir("C:\\Users\\colin\\Documents\\Master RESO\\Memoire\\Data\\Echantillon\\Videos\\")
 
 debug = True
 # Importing data using pandas
@@ -40,49 +44,54 @@ if debug:
     print("Only text values")
     print(documents_list)
 
-tokens = []
+documents_tokens = []
 for document in documents_list.array:
     tokenized_doc = nltk.tokenize.word_tokenize(document)
     if debug:
         print(tokenized_doc)
-    tokens += tokenized_doc
+    documents_tokens.append([w.lower() for w in tokenized_doc])
 
 if debug:
     print("Number of tokens")
-    print(len(tokens))
-    print(tokens)
-
-# Now we have our list of documents as bags of tokens
-tokens = [w.lower() for w in tokens]
+    print(len(documents_tokens))
+    print(documents_tokens)
 
 # Remove punctuation
 if debug:
     print("Tokens to lowercase")
-    print(len(tokens))
-    print(tokens)
+    print(len(documents_tokens))
+    print(documents_tokens)
 
 # This only removes single punctuation marks, i.e. "can't" won't be removed
-for token in tokens:
-    pattern = re.compile("\W+")
-    match = re.match(pattern, token)
-    if match:
-        tokens.remove(token)
+for tokens in documents_tokens:
+    for token in tokens:
+        pattern = re.compile("\W+")
+        match = re.match(pattern, token)
+        if match:
+            tokens.remove(token)
 
 if debug:
     print("Tokens without punctuation")
-    print(tokens)
+    print(documents_tokens)
 
 # Lemmatize
 
 stemmer = nltk.stem.SnowballStemmer("french")
 stems = []
-for token in tokens:
-    stems.append(stemmer.stem(token))
+for tokens in documents_tokens:
+    stemmed_tokens = []
+    for token in tokens:
+        stemmed_tokens.append(stemmer.stem(token))
+    stems.append(stemmed_tokens)
 
 if debug:
     print("Stemmed tokens")
     print(stems)
 
 # Compute the tf-idf matrix from stems
-tf_idf = TfidfVectorizer(input=stems)
-print()
+transformer = TfidfVectorizer(tokenizer=dummy_tokenizer, preprocessor=dummy_tokenizer)
+
+tf_idf_matrix = transformer.fit_transform(stems)
+
+if debug:
+    print(tf_idf_matrix)
