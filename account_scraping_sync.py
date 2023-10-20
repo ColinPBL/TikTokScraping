@@ -1,5 +1,6 @@
 from tiktokapipy import TikTokAPIError
 from tiktokapipy.api import TikTokAPI
+import os
 import csv
 
 from tiktokapipy.models.video import video_link
@@ -8,34 +9,59 @@ from tiktokapipy.models.video import video_link
 # Uncomment this if you have trouble with playwright install in a venv
 # os.system("playwright install")
 
-def scrape_account(api, account_name, output_path, debug=False, opening_mode="w"):
-    user = api.user(account_name, video_limit=0, scroll_down_time=30)
+def scrape_account(api: TikTokAPI, account_name: str, output_path: str, video_limit=-1, debug=False, opening_mode="w"):
+    """
+    Get video statistics from a TikTok account
+    :param api: The TikTokAPI class instance used in the program
+    :param account_name: The account that is to be scrapped. Expects a handle
+    :param output_path: The name of the file where the information will be written. The data is meant to be written to a
+    csv file
+    :param video_limit: The maximum number of videos to be scrapped. Default value scraps all videos
+    :param debug: Whether to print debug information, useful to know if the program is stuck
+    :param opening_mode: By default, the output file is overwritten. Change to "a" to append to an existing file
+    :return: None
+    """
+    user = api.user(account_name, video_limit=video_limit)
     with open("./data/" + output_path, opening_mode, newline='', encoding="utf_16") as output:
         writer = csv.writer(output, lineterminator='\n')
         writer.writerow(
-            ["Author", "Description", "Creation time", "Diggs", "Shares", "Comments", "Play count", "Challenges"])
+            ["Author", "Description", "Creation time", "Duration", "Diggs", "Shares", "Comments", "Play count", "Challenges"])
         counter = 0
-        for video_model in user.videos.light_models:
+        for video_model in user.videos:
             counter += 1
             try:
                 video = api.video(video_link(video_model.id))
-                writer.writerow([
-                    video.author,
+                # Get video information
+                row = [
+                    video.author.unique_id,
                     video.desc,
                     video.create_time.date(),
+                    video.video.duration,
                     video.stats.digg_count,
                     video.stats.share_count,
                     video.stats.comment_count,
-                    video.stats.play_count,
-                    [challenge.title for challenge in video.challenges]]
-                )
-                if (debug):
+                    video.stats.play_count]
+                # Check if video has challenges, and add them if it is the case
+                challenges = video.challenges
+                if challenges:
+                    row.append("".join([challenge.title for challenge in challenges]))
+                # Append an empty string to preserve csv integrity
+                else:
+                    row.append("NO CHALLENGE")
+
+                # Write row to output
+                writer.writerow(row)
+                if debug:
                     print("====================")
                     print("Scraping videos of " + account_name)
                     print("Video : " + str(counter))
                     print("Video desc : " + video.desc)
-                    print("====================")
+                    print(f"Video challenges : {video.challenges}")
+
             except TikTokAPIError as e:
+                # Sometimes, videos will return an error
+                # In that case, we catch the error and write whatever info has been collected, and the video link so we
+                # can manually collect the info
                 print("An error has occurred during video collection")
                 writer.writerow([
                     video_link(video_model.id),
@@ -48,13 +74,10 @@ def scrape_account(api, account_name, output_path, debug=False, opening_mode="w"
                     ""]
                 )
                 continue
-        if (debug):
-            print(counter)
         output.close()
 
 
-with TikTokAPI(navigation_retries=5, headless=True, navigator_type="firefox", navigation_timeout=0,
-               emulate_mobile=False, scroll_down_time=1) as api:
+with TikTokAPI(navigation_retries=5, headless=True, navigation_timeout=0) as api:
     # Main accounts of the principal french politicians
     accounts = {
         "philippe.poutou": "stats_poutou.csv",
@@ -63,13 +86,15 @@ with TikTokAPI(navigation_retries=5, headless=True, navigator_type="firefox", na
         "fabien_roussel": "stats_roussel.csv",
         "partisocialiste": "stats_ps.csv",
         "emmanuelmacron": "stats_macron.csv",
+        "parti_renaissance": "stats_renaissance.csv",
         "lesrepublicains": "stats_lr.csv",
         "jeanlassalleoff": "stats_lassalle.csv",
         "mlp.officiel": "stats_lepen.csv",
         "jlmelenchon": "stats_melenchon.csv",
         "particommuniste": "stats_pcf.csv",
         "dupontaignannicolas": "stats_dupont-aignan.csv",
-        "zemmour_eric": "stats_zemmour.csv"
+        "zemmour_eric": "stats_zemmour.csv",
+        "vpecresse" : "stats_pecresse.csv"
     }
 
-    scrape_account(api, "zemmour_eric", "stats_zemmour.csv", debug=True)
+    scrape_account(api, "jeanlassalleoff", "stats_lassalle.csv", debug=True, video_limit=5)
