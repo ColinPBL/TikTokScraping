@@ -6,7 +6,7 @@ import re
 
 chdir("C:\\Users\\colin\\Documents\\Master RESO\\Memoire\\Data\\Echantillon\\Videos")
 
-video_directories = listdir("venv")
+video_directories = listdir(".")
 
 with open("../videos_lengths.csv", "w", newline='') as output:
 
@@ -16,7 +16,7 @@ with open("../videos_lengths.csv", "w", newline='') as output:
     for directory in video_directories:
         if path.isdir(directory):
             chdir("./" + directory)
-            files = listdir("venv")
+            files = listdir(".")
             for file in files:
                 if(path.isfile(file)):
                     tag = TinyTag.get(file)
