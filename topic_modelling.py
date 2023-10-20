@@ -3,6 +3,8 @@ import re
 import matplotlib.pyplot as plt
 from os import chdir
 import nltk
+import numpy
+from nltk.corpus import stopwords
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
@@ -21,7 +23,7 @@ def dummy_tokenizer(doc):
 
 
 def plot_top_words(model, feature_names, n_top_words, title):
-    fig, axes = plt.subplots(3, 5, figsize=(30, 15), sharex=True)
+    fig, axes = plt.subplots(2, 5, figsize=(30, 15), sharex=True)
     axes = axes.flatten()
     for topic_idx, topic in enumerate(model.components_):
         top_features_ind = topic.argsort()[-n_top_words:]
@@ -40,13 +42,16 @@ def plot_top_words(model, feature_names, n_top_words, title):
     plt.show()
 
 
+# Download needed nltk libs
+nltk.download("punkt")
+nltk.download("stopwords")
 # Data cleaning
 # Using this article : https://towardsdatascience.com/nlp-in-python-data-cleaning-6313a404a470
 # Our text data is (relatively) clean, since it is organised in a csv file. This means we don't have to do a lot
 # of cleaning
-chdir("C:\\Users\\colin\\Documents\\Master RESO\\Memoire\\Data\\Echantillon\\Videos\\")
+chdir("C:\\Users\\colin\\Documents\\Master RESO\\Memoire\\Data\\Echantillon")
 
-debug = True
+debug = False
 # Importing data using pandas
 documents = pd.read_csv("transcripts.csv")
 
@@ -61,8 +66,7 @@ if debug:
     print("Dataset after removal of missing values")
     print(documents)
 # Tokenize
-# Only download on first run
-# nltk.download("punkt")
+
 documents_list = documents["Transcript"]
 if debug:
     print("Only text values")
@@ -110,22 +114,25 @@ for tokens in documents_tokens:
 
 if debug:
     print("Stemmed tokens")
-    print(stems)
+    #print(stems)
 
+fr_stopwords = stopwords.words('french')
+stemmed_stopwords = [stemmer.stem(word) for word in fr_stopwords]
+print(stemmed_stopwords)
 # Compute the tf-idf matrix from stems
-transformer = TfidfVectorizer(tokenizer=dummy_tokenizer, preprocessor=dummy_tokenizer, max_df=0.5)
+transformer = TfidfVectorizer(tokenizer=dummy_tokenizer, preprocessor=dummy_tokenizer, stop_words=fr_stopwords)
 
 tf_idf_matrix = transformer.fit_transform(stems)
 tfidf_feature_names = transformer.get_feature_names_out()
 
 if debug:
     print(tf_idf_matrix)
-    print(transformer.vocabulary_)
+    print(type(tf_idf_matrix))
 
 # Topic extraction using NMF
 
 # Define a number of topics
-topics_number = 15
+topics_number = 10
 
 # Create the nmf model
 nmf = NMF(n_components=topics_number, max_iter=500)
