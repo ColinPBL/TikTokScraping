@@ -1,7 +1,7 @@
 from tiktokapipy.api import TikTokAPI
 import os
 
-def scrape_challenges(tag):
+def scrape_challenges(tag: str):
     # Create an instance of the TikTokAPI class
     with TikTokAPI() as api:
         # Get trending videos with the corresponding challenge, up to video_limit
